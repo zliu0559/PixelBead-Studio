@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PixelBead Studio Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class' }
+    </script>
+    <style>
+        input[type="file"] { display: none; }
+        #canvas-container { cursor: grab; overflow: hidden; touch-action: none; }
+        #canvas-container:active { cursor: grabbing; }
+        
+        .no-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .no-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .no-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .dark .no-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans h-[100dvh] flex flex-col overflow-hidden transition-colors duration-300">
+
+    <header class="h-14 sm:h-16 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-between px-4 sm:px-8 shrink-0 shadow-sm z-20 transition-colors">
+        <div class="flex items-center gap-2 sm:gap-4">
+            <h1 class="text-lg sm:text-xl font-bold bg-gradient-to-r from-indigo-600 to-blue-500 bg-clip-text text-transparent">PixelBead Studio</h1>
+            <span class="hidden sm:inline-block text-[10px] sm:text-xs py-1 px-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 font-mono rounded">v5.2 修复版</span>
+        </div>
+        <div class="flex items-center gap-2 sm:gap-4">
+            <button id="themeToggle" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-500 dark:text-slate-400">
+                <svg id="themeIconSun" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"></path></svg>
+                <svg id="themeIconMoon" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+            </button>
+            <button id="compareBtn" class="hidden sm:block px-4 py-2 text-sm font-medium border border-slate-300 dark:border-slate-600 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 transition">查看原图</button>
+            <button id="downloadBtn" class="px-3 sm:px-5 py-2 text-sm font-bold bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 shadow-md flex items-center gap-2 transition-all">导出</button>
+        </div>
+    </header>
+
+    <div class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+        <aside class="w-full md:w-[340px] border-t md:border-t-0 md:border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 sm:p-6 overflow-y-auto no-scrollbar shrink-0 flex flex-col gap-5 z-10 transition-colors h-[40vh] md:h-auto order-2 md:order-1">
+            <section>
+                <label class="flex flex-col items-center justify-center w-full h-14 sm:h-16 border-2 border-dashed border-indigo-300 dark:border-indigo-700 rounded-xl cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all bg-indigo-50/30 dark:bg-slate-700/50">
+                    <span class="text-sm font-bold text-indigo-600 dark:text-indigo-400">🖼️ 上传或更换图片</span>
+                    <input type="file" id="imageInput" accept="image/*" />
+                </label>
+            </section>
+
+            <section class="space-y-3">
+                <h3 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase border-b border-slate-100 dark:border-slate-700 pb-1">智能处理</h3>
+                <div class="flex flex-col gap-2 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-700 transition-colors">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-bold text-slate-700 dark:text-slate-200">🪄 去除纯色背景</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="removeBgToggle" class="sr-only peer">
+                            <div class="w-8 h-4 bg-slate-300 dark:bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-500"></div>
+                        </label>
+                    </div>
+                    <div class="flex items-center justify-between pt-1">
+                        <span class="text-sm font-bold text-slate-700 dark:text-slate-200">📏 自动居中裁剪</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="autoCropToggle" class="sr-only peer" checked>
+                            <div class="w-8 h-4 bg-slate-300 dark:bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-500"></div>
+                        </label>
+                    </div>
+                    <div class="space-y-1 mt-2 border-t border-slate-200 dark:border-slate-700 pt-2" id="paddingControlBlock">
+                        <div class="flex justify-between text-xs text-slate-500 dark:text-slate-400">
+                            <span>四周边缘留白</span>
+                            <span id="paddingLabel" class="font-bold text-indigo-500">2 格</span>
+                        </div>
+                        <input type="range" id="paddingSlider" min="0" max="8" value="2" class="w-full h-1 bg-slate-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                    </div>
+                </div>
+            </section>
+
+            <section class="space-y-3">
+                <h3 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase border-b border-slate-100 dark:border-slate-700 pb-1">参数设置</h3>
+                <div class="space-y-2">
+                    <label class="text-xs text-slate-500 dark:text-slate-400 block">品牌色卡标准</label>
+                    <select id="paletteSystem" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white dark:bg-slate-700 dark:text-white transition-colors">
+                        <option value="AM">A-M 系列 (迈高/金甲库)</option>
+                        <option value="C">C 系列 (Artkal标准)</option>
+                        <option value="H">H 系列 (Perler标准)</option>
+                    </select>
+                </div>
+                <div class="space-y-1 pt-2">
+                    <div class="flex justify-between text-xs text-slate-500 dark:text-slate-400">
+                        <span>图纸宽度密度</span>
+                        <span id="gridSizeLabel" class="font-bold text-indigo-500">50 豆</span>
+                    </div>
+                    <input type="range" id="gridSlider" min="20" max="150" value="50" class="w-full h-1.5 bg-slate-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                </div>
+                <div class="space-y-2 pt-2">
+                    <label class="text-xs text-slate-500 dark:text-slate-400 block">专属水印保护</label>
+                    <input type="text" id="watermarkInput" value="Lzz" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white dark:bg-slate-700 dark:text-white transition-colors">
+                    <label class="flex items-center gap-2 mt-1 cursor-pointer">
+                        <input type="checkbox" id="fullWatermarkToggle" class="accent-indigo-500 w-3 h-3" checked>
+                        <span class="text-[10px] text-slate-500 dark:text-slate-400">导出版开启全图防盗网纹</span>
+                    </label>
+                </div>
+                <label class="flex items-center gap-2 cursor-pointer pt-2">
+                    <input type="checkbox" id="styleToggle" class="accent-indigo-500 w-4 h-4">
+                    <span class="text-sm font-bold text-slate-700 dark:text-slate-200">开启拟真圆珠视图</span>
+                </label>
+            </section>
+
+            <section class="flex-1 flex flex-col min-h-[200px]">
+                <h3 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase border-b border-slate-100 dark:border-slate-700 pb-1 mb-2">耗材清单</h3>
+                <div class="flex-1 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col transition-colors">
+                    <div id="statsList" class="overflow-y-auto no-scrollbar flex-1 p-2 space-y-1 relative">
+                    </div>
+                </div>
+            </section>
+
+            <footer class="mt-2 pt-3 border-t border-slate-200 dark:border-slate-700 text-center shrink-0">
+                <div class="text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">© 2026 PixelBead Studio by LeonLiu.</div>
+                <div class="text-[9px] text-slate-400 dark:text-slate-500 leading-relaxed px-2">
+                    生成图纸仅供交流，请尊重原图版权。
+                </div>
+            </footer>
+        </aside>
+
+        <main class="flex-1 bg-[#e2e8f0] dark:bg-[#0f172a] relative transition-colors duration-300 order-1 md:order-2 h-[60vh] md:h-auto" id="canvas-container">
+            <div id="emptyState" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none transition-opacity duration-300 z-10">
+                <svg class="w-16 h-16 text-slate-400 dark:text-slate-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                <p class="text-slate-600 dark:text-slate-300 font-bold text-lg mb-1">PixelBead 待命</p>
+                <p class="text-slate-500 dark:text-slate-400 text-sm">请从控制面板上传图片开始转化</p>
+            </div>
+
+            <canvas id="mainCanvas" class="absolute top-0 left-0 w-full h-full opacity-0 transition-opacity duration-500"></canvas>
+            
+            <div id="canvasHint" class="hidden md:flex absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-900/80 text-white px-4 py-2 rounded-full text-xs shadow-lg pointer-events-none backdrop-blur-sm gap-4 items-center transition-opacity">
+                <span>滚轮: 缩放</span><span class="w-px h-3 bg-slate-600"></span>
+                <span>按住: 平移</span><span class="w-px h-3 bg-slate-600"></span>
+                <span id="canvasGridInfo" class="font-mono text-indigo-300"></span>
+            </div>
+            <div class="md:hidden absolute bottom-2 left-1/2 -translate-x-1/2 bg-slate-900/60 text-white px-3 py-1.5 rounded-full text-[10px] shadow-lg pointer-events-none backdrop-blur-sm opacity-50">
+                双指缩放 | 单指拖拽
+            </div>
+        </main>
+    </div>
+
+    <div id="toastContainer" class="fixed top-5 left-1/2 -translate-x-1/2 md:top-auto md:left-auto md:bottom-5 md:right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <script>
+        // ================= 0. UI 交互 =================
+        const themeToggleBtn = document.getElementById('themeToggle');
+        const themeIconSun = document.getElementById('themeIconSun');
+        const themeIconMoon = document.getElementById('themeIconMoon');
+        
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+            if (document.documentElement.classList.contains('dark')) {
+                themeIconMoon.classList.add('hidden'); themeIconSun.classList.remove('hidden');
+            } else {
+                themeIconSun.classList.add('hidden'); themeIconMoon.classList.remove('hidden');
+            }
+            if(patternData) requestAnimationFrame(renderCanvas); 
+        }
+        themeToggleBtn.addEventListener('click', toggleTheme);
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-2.5 rounded-lg shadow-xl transform transition-all duration-300 -translate-y-4 md:translate-y-10 opacity-0 text-sm font-medium flex items-center gap-2';
+            toast.innerHTML = `<svg class="w-4 h-4 text-indigo-400 dark:text-indigo-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>${message}`;
+            document.getElementById('toastContainer').appendChild(toast);
+            requestAnimationFrame(() => toast.classList.remove('-translate-y-4', 'md:translate-y-10', 'opacity-0'));
+            setTimeout(() => {
+                toast.classList.add('-translate-y-4', 'md:translate-y-10', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+
+        // ================= 1. 配置与色库 =================
+        const BEAD_SIZE = 24; const RULER_SIZE = 30; 
+        let camera = { x: 50, y: 50, zoom: 1 };
+        let isDragging = false, lastMousePos = { x: 0, y: 0 };
+        let showOriginal = false, currentImg = null, patternData = null;
+
+        const paletteRawAM = [
+            "A1,极浅黄,255,255,200","A3,明黄,255,235,59","A4,正黄,255,215,0","A7,浅橙,255,183,77","A10,正橙,255,152,0","A12,深橙,245,124,0","A16,橘红,255,87,34","A25,姜黄,255,193,7","A26,金黄,255,160,0",
+            "B1,极浅绿,224,242,241","B3,浅嫩绿,165,214,167","B5,草绿,76,175,80","B8,正绿,56,142,60","B10,深绿,27,94,32","B16,黄绿,139,195,74","B21,孔雀绿,0,150,136","B22,深青绿,0,77,64","B32,橄榄绿,158,157,36",
+            "C1,极浅蓝,227,242,253","C3,浅天蓝,129,212,250","C5,天蓝,3,169,244","C8,正蓝,33,150,243","C9,深蓝,25,118,210","C12,藏青,13,71,161","C15,湖蓝,0,188,212","C20,青蓝,0,131,143","C26,宝蓝,40,53,147",
+            "D1,极浅紫,243,229,245","D3,浅紫罗兰,206,147,216","D5,正紫,156,39,176","D10,深紫,74,20,140","D14,玫紫,171,71,188","D18,灰紫,149,117,205","D22,靛紫,94,53,177",
+            "E1,极浅粉,252,228,236","E3,樱花粉,248,187,208","E5,桃粉,240,98,146","E6,芭比粉,233,30,99","E10,玫红,194,24,91","E15,浅洋红,255,128,171",
+            "F1,浅红,255,138,128","F3,正红,244,67,54","F5,大红,229,57,53","F7,暗红,198,40,40","F10,深红,183,28,28","F15,砖红,211,47,47",
+            "G1,极浅肤色,255,243,224","G3,肤色,255,204,128","G5,浅褐,215,204,200","G7,卡其色,188,170,164","G10,棕黄,141,110,99","G14,巧克力,121,85,72","G17,深棕,78,52,46",
+            "H2,纯白,255,255,255","H3,极浅灰,245,245,245","H4,浅灰,224,224,224","H5,中灰,158,158,158","H6,深灰,97,97,97","H7,纯黑,20,20,20","H16,冷灰,66,66,66","H20,蓝灰,110,123,139",
+            "M1,雾霾蓝,176,190,197","M2,灰豆绿,163,191,168","M3,灰湖蓝,128,162,186","M7,肉桂粉,229,184,183","M9,奶茶色,210,180,140","M12,紫灰,169,158,172","M14,珊瑚橘,239,154,154"
+        ];
+        const paletteRawGeneric = ["01,纯白,255,255,255","02,浅灰,211,211,211","04,中灰,169,169,169","08,纯黑,20,20,20","10,粉红,255,182,193","12,大红,255,0,0","15,明橙,255,165,0","17,明黄,255,255,0","20,草绿,127,255,0","21,正绿,0,128,0","23,天蓝,135,206,235","24,纯蓝,0,0,255","28,正紫,128,0,128","29,肤色,255,228,196","31,中棕,139,69,19"];
+
+        let activePalette = [];
+        function initPalette() {
+            const system = document.getElementById('paletteSystem').value;
+            const rawData = system === 'AM' ? paletteRawAM : paletteRawGeneric;
+            activePalette = rawData.map(str => {
+                const parts = str.split(',');
+                const code = system === 'AM' ? parts[0] : (system + parts[0].replace(/^[A-Z]+/,''));
+                return { code: code, name: parts[1], r: parseInt(parts[2]), g: parseInt(parts[3]), b: parseInt(parts[4]) };
+            });
+        }
+
+        const canvasContainer = document.getElementById('canvas-container');
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = canvasContainer.clientWidth;
+            canvas.height = canvasContainer.clientHeight;
+            if (patternData) requestAnimationFrame(renderCanvas);
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function centerCamera() {
+            if (!patternData || patternData.w === 0) return;
+            const contentW = patternData.w * BEAD_SIZE + RULER_SIZE;
+            const contentH = patternData.h * BEAD_SIZE + RULER_SIZE;
+            const padding = window.innerWidth < 768 ? 20 : 100; 
+            const scaleX = (canvas.width - padding) / contentW;
+            const scaleY = (canvas.height - padding) / contentH;
+            camera.zoom = Math.min(scaleX, scaleY, window.innerWidth < 768 ? 2 : 1); 
+            camera.x = (canvas.width - contentW * camera.zoom) / 2;
+            camera.y = (canvas.height - contentH * camera.zoom) / 2;
+            requestAnimationFrame(renderCanvas);
+        }
+
+        function handleDown(e) {
+            isDragging = true; 
+            lastMousePos = { x: e.touches ? e.touches[0].clientX : e.clientX, y: e.touches ? e.touches[0].clientY : e.clientY };
+        }
+        function handleMove(e) {
+            if (!isDragging) return;
+            if(e.touches) e.preventDefault(); 
+            let x = e.touches ? e.touches[0].clientX : e.clientX; let y = e.touches ? e.touches[0].clientY : e.clientY;
+            camera.x += x - lastMousePos.x; camera.y += y - lastMousePos.y; lastMousePos = { x, y };
+            requestAnimationFrame(renderCanvas);
+        }
+        function handleUp() { isDragging = false; }
+
+        canvasContainer.addEventListener('mousedown', handleDown); window.addEventListener('mousemove', handleMove); window.addEventListener('mouseup', handleUp);
+        canvasContainer.addEventListener('touchstart', handleDown, {passive: false}); window.addEventListener('touchmove', handleMove, {passive: false}); window.addEventListener('touchend', handleUp);
+
+        canvasContainer.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomDelta = e.deltaY > 0 ? 0.85 : 1.15;
+            const newZoom = Math.max(0.1, Math.min(camera.zoom * zoomDelta, 10)); 
+            const rect = canvasContainer.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left; const mouseY = e.clientY - rect.top;
+            camera.x = mouseX - (mouseX - camera.x) * (newZoom / camera.zoom);
+            camera.y = mouseY - (mouseY - camera.y) * (newZoom / camera.zoom);
+            camera.zoom = newZoom;
+            requestAnimationFrame(renderCanvas);
+        }, {passive: false});
+
+
+        // ================= 3. 数据生成引擎 =================
+        function findClosest(r, g, b) {
+            let best = activePalette[0], min = Infinity;
+            activePalette.forEach(c => {
+                const d = Math.sqrt((r-c.r)**2 + (g-c.g)**2 + (b-c.b)**2);
+                if (d < min) { min = d; best = c; }
+            });
+            return best;
+        }
+
+        function removeSolidBackground(data, w, h) {
+            let rSum = 0, gSum = 0, bSum = 0, valid = 0;
+            const check = (x, y) => {
+                const i = (y * w + x) * 4;
+                if (data[i+3] >= 128) { rSum += data[i]; gSum += data[i+1]; bSum += data[i+2]; valid++; }
+            };
+            check(0,0); check(w-1,0); check(0,h-1); check(w-1,h-1);
+            if (valid === 0) return; 
+
+            const bgR = rSum/valid, bgG = gSum/valid, bgB = bSum/valid;
+            const queue = []; const visited = new Uint8Array(w * h);
+
+            for(let x=0; x<w; x++) { queue.push(x); queue.push((h-1)*w + x); }
+            for(let y=0; y<h; y++) { queue.push(y*w); queue.push(y*w + w - 1); }
+
+            let head = 0;
+            while(head < queue.length) {
+                const idx = queue[head++];
+                if (visited[idx]) continue; visited[idx] = 1;
+                const i = idx * 4;
+                if (data[i+3] < 128) continue; 
+                if (Math.sqrt((data[i]-bgR)**2 + (data[i+1]-bgG)**2 + (data[i+2]-bgB)**2) <= 45) {
+                    data[i+3] = 0; 
+                    const x = idx % w, y = Math.floor(idx / w);
+                    if (x > 0) queue.push(idx - 1); if (x < w - 1) queue.push(idx + 1);
+                    if (y > 0) queue.push(idx - w); if (y < h - 1) queue.push(idx + w);
+                }
+            }
+        }
+
+        function generatePattern(isInitialLoad = false) {
+            if (!currentImg) return;
+            const gridW = parseInt(document.getElementById('gridSlider').value);
+            const gridH = Math.floor(gridW * (currentImg.height / currentImg.width));
+            
+            const off = document.createElement('canvas'); off.width = gridW; off.height = gridH;
+            off.getContext('2d').drawImage(currentImg, 0, 0, gridW, gridH);
+            const data = off.getContext('2d').getImageData(0, 0, gridW, gridH).data;
+            
+            if (document.getElementById('removeBgToggle').checked) removeSolidBackground(data, gridW, gridH);
+
+            let tempGrid = [], tempCounts = {};
+            let minX = gridW, maxX = -1, minY = gridH, maxY = -1, hasBeads = false;
+
+            for (let y = 0; y < gridH; y++) {
+                const row = [];
+                for (let x = 0; x < gridW; x++) {
+                    const idx = (y * gridW + x) * 4;
+                    const a = data[idx + 3];
+
+                    if (a < 128) {
+                        row.push({ isEmpty: true });
+                    } else {
+                        const rBlend = Math.round((data[idx] * a + 255 * (255 - a)) / 255);
+                        const gBlend = Math.round((data[idx+1] * a + 255 * (255 - a)) / 255);
+                        const bBlend = Math.round((data[idx+2] * a + 255 * (255 - a)) / 255);
+
+                        const match = findClosest(rBlend, gBlend, bBlend);
+                        row.push({ isEmpty: false, ...match });
+                        
+                        tempCounts[match.code] = tempCounts[match.code] || { ...match, count: 0 };
+                        tempCounts[match.code].count++;
+                        
+                        if (x < minX) minX = x; if (x > maxX) maxX = x;
+                        if (y < minY) minY = y; if (y > maxY) maxY = y;
+                        hasBeads = true;
+                    }
+                }
+                tempGrid.push(row);
+            }
+
+            const isCropEnabled = document.getElementById('autoCropToggle').checked;
+            const padControls = document.getElementById('paddingControlBlock');
+            padControls.style.opacity = isCropEnabled ? '1' : '0.4'; padControls.style.pointerEvents = isCropEnabled ? 'auto' : 'none';
+
+            if (isCropEnabled && hasBeads) {
+                const pad = parseInt(document.getElementById('paddingSlider').value);
+                const startX = Math.max(0, minX - pad), endX = Math.min(gridW - 1, maxX + pad);
+                const startY = Math.max(0, minY - pad), endY = Math.min(gridH - 1, maxY + pad);
+
+                patternData = { w: endX - startX + 1, h: endY - startY + 1, grid: [], counts: tempCounts };
+                for (let y = startY; y <= endY; y++) { patternData.grid.push(tempGrid[y].slice(startX, endX + 1)); }
+            } else {
+                patternData = { w: hasBeads ? gridW : 0, h: hasBeads ? gridH : 0, grid: hasBeads ? tempGrid : [], counts: tempCounts };
+            }
+
+            document.getElementById('canvasGridInfo').innerText = patternData.w > 0 ? `${patternData.w} × ${patternData.h} 格` : '空';
+            updateStatsUI(patternData.counts);
+            centerCamera(); 
+            
+            if (isInitialLoad) {
+                document.getElementById('emptyState').classList.add('opacity-0');
+                canvas.classList.remove('opacity-0');
+                document.getElementById('canvasHint').classList.remove('hidden');
+                showToast('转化完成，边缘抗锯齿已自动平滑处理');
+            }
+        }
+
+        function updateStatsUI(counts) {
+            const list = document.getElementById('statsList');
+            list.innerHTML = '';
+            const keys = Object.keys(counts);
+            if(keys.length === 0) { list.innerHTML = '<div class="text-center text-slate-400 text-xs mt-10">图案完全透明或未识别</div>'; return; }
+
+            const totalBeads = Object.values(counts).reduce((sum, item) => sum + item.count, 0);
+            const totalEl = document.createElement('div');
+            totalEl.className = 'flex justify-between items-center p-3 mb-3 bg-indigo-600 dark:bg-indigo-500 rounded-md shadow text-white sticky top-0 z-10';
+            totalEl.innerHTML = `
+                <span class="text-sm font-bold">总计耗材</span>
+                <span class="font-bold font-mono text-lg">${totalBeads} <span class="text-xs font-normal opacity-80">颗</span></span>
+            `;
+            list.appendChild(totalEl);
+
+            Object.entries(counts).sort((a,b) => b[1].count - a[1].count).forEach(([code, item]) => {
+                const el = document.createElement('div');
+                el.className = 'flex items-center justify-between p-2 mb-1 bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 rounded shadow-sm text-sm hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors';
+                el.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="w-4 h-4 rounded-full border border-slate-200 dark:border-slate-800 shadow-inner" style="background-color: rgb(${item.r},${item.g},${item.b})"></span>
+                        <span class="font-bold font-mono text-[11px] w-8 dark:text-slate-100">${code}</span>
+                        <span class="text-slate-500 dark:text-slate-400 text-[10px] w-12 truncate">${item.name}</span>
+                    </div>
+                    <span class="font-bold text-indigo-600 dark:text-indigo-400">${item.count}</span>
+                `;
+                list.appendChild(el);
+            });
+        }
+
+        // ================= 4. 高清矢量渲染引擎 =================
+        function drawVectorPattern(targetCtx, bSize, showCoordinates, isExport = false) {
+            if (!patternData || patternData.w === 0) return;
+            const isRound = document.getElementById('styleToggle').checked;
+            const startX = showCoordinates ? RULER_SIZE : 0; const startY = showCoordinates ? RULER_SIZE : 0;
+            const totalW = patternData.w * bSize; const totalH = patternData.h * bSize;
+
+            targetCtx.lineJoin = 'round'; targetCtx.lineCap = 'round'; targetCtx.miterLimit = 2;     
+
+            targetCtx.fillStyle = '#ffffff'; 
+            targetCtx.fillRect(startX, startY, totalW, totalH);
+
+            if (showCoordinates) {
+                targetCtx.fillStyle = isExport ? '#f8fafc' : (document.documentElement.classList.contains('dark') ? '#1e293b' : '#f8fafc');
+                targetCtx.fillRect(0, 0, startX + totalW, RULER_SIZE); 
+                targetCtx.fillRect(0, 0, RULER_SIZE, startY + totalH); 
+            }
+
+            for (let y = 0; y < patternData.h; y++) {
+                if (showCoordinates && (y + 1) % 5 === 0) {
+                    targetCtx.fillStyle = isExport ? '#475569' : '#64748b';
+                    targetCtx.font = `bold ${bSize * 0.45}px Arial`; targetCtx.textAlign = 'center'; targetCtx.textBaseline = 'middle';
+                    targetCtx.fillText(y + 1, RULER_SIZE / 2, startY + y * bSize + bSize / 2);
+                }
+                for (let x = 0; x < patternData.w; x++) {
+                    if (y === 0 && showCoordinates && (x + 1) % 5 === 0) {
+                        targetCtx.fillStyle = isExport ? '#475569' : '#64748b';
+                        targetCtx.font = `bold ${bSize * 0.45}px Arial`; targetCtx.textAlign = 'center'; targetCtx.textBaseline = 'middle';
+                        targetCtx.fillText(x + 1, startX + x * bSize + bSize / 2, RULER_SIZE / 2);
+                    }
+
+                    const bead = patternData.grid[y][x];
+                    
+                    if (bead.isEmpty) {
+                        targetCtx.strokeStyle = isExport ? 'rgba(0,0,0,0.05)' : 'rgba(100,100,100,0.1)'; 
+                        targetCtx.lineWidth = 1; targetCtx.strokeRect(startX + x * bSize, startY + y * bSize, bSize, bSize);
+                        continue; 
+                    }
+
+                    const cx = startX + x * bSize + bSize/2; const cy = startY + y * bSize + bSize/2;
+
+                    targetCtx.fillStyle = `rgb(${bead.r}, ${bead.g}, ${bead.b})`;
+                    if (isRound) { targetCtx.beginPath(); targetCtx.arc(cx, cy, bSize/2 - 1.5, 0, Math.PI*2); targetCtx.fill(); } 
+                    else { targetCtx.fillRect(startX + x * bSize, startY + y * bSize, bSize, bSize); }
+
+                    targetCtx.strokeStyle = 'rgba(0,0,0,0.1)'; targetCtx.lineWidth = 0.5;
+                    targetCtx.strokeRect(startX + x * bSize, startY + y * bSize, bSize, bSize);
+
+                    targetCtx.font = `bold ${bSize * 0.35}px Arial`; targetCtx.textAlign = 'center'; targetCtx.textBaseline = 'middle';
+                    targetCtx.lineWidth = bSize * 0.15; targetCtx.strokeStyle = 'white';
+                    targetCtx.strokeText(bead.code, cx, cy); targetCtx.fillStyle = '#111'; targetCtx.fillText(bead.code, cx, cy);
+                }
+            }
+
+            if (isExport && document.getElementById('fullWatermarkToggle').checked) {
+                targetCtx.save();
+                const wmText = document.getElementById('watermarkInput').value || 'Lzz';
+                targetCtx.fillStyle = 'rgba(0, 0, 0, 0.08)'; targetCtx.font = `bold ${bSize * 2.2}px sans-serif`; targetCtx.textAlign = 'center'; targetCtx.textBaseline = 'middle';
+                const stepX = targetCtx.measureText(wmText).width + bSize * 4; const stepY = bSize * 8;
+                targetCtx.beginPath(); targetCtx.rect(startX, startY, totalW, totalH); targetCtx.clip();
+                for (let y = -totalH; y < totalH * 2; y += stepY) {
+                    const offsetX = (Math.abs(y / stepY) % 2 === 0) ? 0 : (stepX / 2);
+                    for (let x = -totalW; x < totalW * 2; x += stepX) {
+                        targetCtx.save(); targetCtx.translate(startX + x + offsetX, startY + y);
+                        targetCtx.rotate(-30 * Math.PI / 180); targetCtx.fillText(wmText, 0, 0); targetCtx.restore();
+                    }
+                }
+                targetCtx.restore();
+            }
+
+            targetCtx.strokeStyle = isExport ? 'rgba(0,0,0,0.5)' : 'rgba(100,100,100,0.5)'; 
+            targetCtx.lineWidth = bSize * 0.08; targetCtx.beginPath();
+            for (let x = 0; x <= patternData.w; x += 5) { targetCtx.moveTo(startX + x * bSize, startY); targetCtx.lineTo(startX + x * bSize, startY + totalH); }
+            for (let y = 0; y <= patternData.h; y += 5) { targetCtx.moveTo(startX, startY + y * bSize); targetCtx.lineTo(startX + totalW, startY + y * bSize); }
+            targetCtx.stroke();
+        }
+
+        function renderCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (!currentImg || !patternData || patternData.w === 0) return;
+
+            ctx.save(); ctx.translate(camera.x, camera.y); ctx.scale(camera.zoom, camera.zoom);
+
+            if (showOriginal) {
+                const originalGridW = parseInt(document.getElementById('gridSlider').value);
+                const originalGridH = Math.floor(originalGridW * (currentImg.height / currentImg.width));
+                const drawW = originalGridW * BEAD_SIZE; const drawH = originalGridH * BEAD_SIZE;
+                ctx.fillStyle = '#fff'; ctx.fillRect(RULER_SIZE, RULER_SIZE, drawW, drawH);
+                ctx.drawImage(currentImg, RULER_SIZE, RULER_SIZE, drawW, drawH);
+            } else {
+                drawVectorPattern(ctx, BEAD_SIZE, true, false);
+            }
+            ctx.restore();
+        }
+
+        // ================= 5. 事件绑定 (完全修复) =================
+        // 【关键修复】找回了丢失的图片上传监听！
+        document.getElementById('imageInput').onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            showToast('图片加载中...');
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const img = new Image();
+                img.onload = () => { currentImg = img; generatePattern(true); };
+                img.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        if(document.getElementById('compareBtn')) {
+            ['compareBtn'].forEach(id => {
+                const btn = document.getElementById(id);
+                btn.addEventListener('mousedown', () => { showOriginal = true; requestAnimationFrame(renderCanvas); });
+                btn.addEventListener('touchstart', (e) => { e.preventDefault(); showOriginal = true; requestAnimationFrame(renderCanvas); });
+                btn.addEventListener('mouseup', () => { showOriginal = false; requestAnimationFrame(renderCanvas); });
+                btn.addEventListener('touchend', () => { showOriginal = false; requestAnimationFrame(renderCanvas); });
+                btn.addEventListener('mouseleave', () => { showOriginal = false; requestAnimationFrame(renderCanvas); });
+            });
+        }
+
+        document.getElementById('gridSlider').oninput = (e) => { document.getElementById('gridSizeLabel').innerText = e.target.value + ' 豆'; generatePattern(); };
+        document.getElementById('paddingSlider').oninput = (e) => { document.getElementById('paddingLabel').innerText = e.target.value + ' 格'; generatePattern(); };
+        
+        document.getElementById('styleToggle').onchange = () => requestAnimationFrame(renderCanvas);
+        document.getElementById('removeBgToggle').onchange = () => { generatePattern(); if(document.getElementById('removeBgToggle').checked) showToast('已自动过滤纯色背景'); }; 
+        document.getElementById('autoCropToggle').onchange = () => { generatePattern(); if(document.getElementById('autoCropToggle').checked) showToast('已自动居中并裁剪空白'); }; 
+        document.getElementById('paletteSystem').onchange = () => { initPalette(); generatePattern(); showToast('色系已切换'); };
+        
+        document.getElementById('fullWatermarkToggle').onchange = () => requestAnimationFrame(renderCanvas);
+        document.getElementById('watermarkInput').oninput = () => requestAnimationFrame(renderCanvas);
+
+        // ================= 6. 高清导出 =================
+        document.getElementById('downloadBtn').onclick = () => {
+            if (!patternData || patternData.w === 0) { showToast('请先上传图片', 'error'); return; }
+            showToast('正在生成海报级图纸...');
+            
+            setTimeout(() => {
+                const EXPORT_BEAD_SIZE = 36; 
+                const PADDING = 60, STATS_WIDTH = 400, TITLE_HEIGHT = 100;
+                const PATTERN_W = patternData.w * EXPORT_BEAD_SIZE, PATTERN_H = patternData.h * EXPORT_BEAD_SIZE;
+                
+                const expCanvas = document.createElement('canvas');
+                expCanvas.width = PADDING * 3 + RULER_SIZE + PATTERN_W + STATS_WIDTH;
+                expCanvas.height = Math.max(PADDING * 2 + TITLE_HEIGHT + RULER_SIZE + PATTERN_H, 1000);
+                const eCtx = expCanvas.getContext('2d');
+
+                eCtx.fillStyle = '#f8fafc'; eCtx.fillRect(0, 0, expCanvas.width, expCanvas.height);
+                eCtx.fillStyle = '#0f172a'; eCtx.font = 'bold 42px sans-serif';
+                eCtx.fillText(`${document.getElementById('watermarkInput').value || 'Lzz'} 的专属拼豆图纸`, PADDING, PADDING + 40);
+                
+                eCtx.save(); eCtx.translate(PADDING, PADDING + TITLE_HEIGHT);
+                eCtx.shadowColor = 'rgba(0,0,0,0.1)'; eCtx.shadowBlur = 20; eCtx.shadowOffsetY = 10;
+                eCtx.fillStyle = '#ffffff'; eCtx.fillRect(0, 0, PATTERN_W + RULER_SIZE, PATTERN_H + RULER_SIZE);
+                eCtx.shadowColor = 'transparent';
+
+                drawVectorPattern(eCtx, EXPORT_BEAD_SIZE, true, true); 
+                eCtx.restore();
+
+                let sStartX = PADDING * 2 + RULER_SIZE + PATTERN_W;
+                let sStartY = PADDING + TITLE_HEIGHT;
+                eCtx.fillStyle = '#0f172a'; eCtx.font = 'bold 30px sans-serif'; eCtx.fillText('耗材需求清单', sStartX, sStartY + 30);
+                
+                const totalBeads = Object.values(patternData.counts).reduce((sum, item) => sum + item.count, 0);
+                eCtx.fillStyle = '#4f46e5'; eCtx.font = 'bold 22px sans-serif'; eCtx.fillText(`总计: ${totalBeads} 颗`, sStartX + 220, sStartY + 30);
+                sStartY += 70;
+                
+                Object.entries(patternData.counts).sort((a,b) => b[1].count - a[1].count).forEach(([code, item]) => {
+                    eCtx.fillStyle = '#fff'; eCtx.fillRect(sStartX, sStartY, STATS_WIDTH, 50);
+                    eCtx.strokeStyle = '#e2e8f0'; eCtx.strokeRect(sStartX, sStartY, STATS_WIDTH, 50);
+                    eCtx.fillStyle = `rgb(${item.r},${item.g},${item.b})`;
+                    eCtx.beginPath(); eCtx.arc(sStartX + 30, sStartY + 25, 15, 0, Math.PI*2); eCtx.fill(); eCtx.stroke();
+                    eCtx.fillStyle = '#1e293b'; eCtx.font = 'bold 24px monospace'; eCtx.fillText(code, sStartX + 70, sStartY + 35);
+                    eCtx.fillStyle = '#64748b'; eCtx.font = '18px sans-serif'; eCtx.fillText(item.name, sStartX + 130, sStartY + 33);
+                    eCtx.fillStyle = '#0f172a'; eCtx.textAlign = 'right'; eCtx.fillText(`${item.count} 颗`, sStartX + STATS_WIDTH - 20, sStartY + 35);
+                    eCtx.textAlign = 'left'; sStartY += 55;
+                });
+
+                const link = document.createElement('a');
+                link.download = `${document.getElementById('watermarkInput').value || 'Lzz'}_Pattern.png`;
+                link.href = expCanvas.toDataURL(); link.click();
+            }, 100);
+        };
+
+        initPalette();
+    </script>
+</body>
+</html>
